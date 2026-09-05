@@ -1,0 +1,27 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+
+# next
+/.next/
+/out/
+
+# env
+.env
+.env*.local
+.data
+
+# debug
+npm-debug.log*
+
+# os
+.DS_Store
+
+# typescript
+*.tsbuildinfo
+
+# deploy / local scratch
+.vercel
+.tmp-ref

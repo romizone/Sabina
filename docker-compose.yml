@@ -1,0 +1,14 @@
+services:
+  sabina:
+    build: .
+    container_name: sabina
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-flash-vision-exp}
+      NEXT_PUBLIC_APP_URL: https://sabina.rominur.com
+      PORT: 3000
+      HOSTNAME: 0.0.0.0

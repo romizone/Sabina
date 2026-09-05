@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --navy: #0b3d91;
+  --navy-deep: #072c6b;
+  --ink: #1a1d23;
+  --muted: #5c6570;
+  --line: #e4e8ee;
+  --paper: #f4f6f8;
+}
+
+html,
+body {
+  background: #fff;
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
+}
+
+::selection {
+  background: #d6e4ff;
+}
+
+.hero-wash {
+  background:
+    linear-gradient(90deg, #eef2f6 0%, #f7f8fa 42%, #e9eef3 100%);
+}
+
+.wordmark-ghost {
+  color: rgba(70, 78, 88, 0.28);
+  letter-spacing: -0.04em;
+}
