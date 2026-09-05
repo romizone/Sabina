@@ -33,7 +33,7 @@ const SUGGESTIONS = [
 
 export function ChatApp() {
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
-  const [cif, setCif] = useState("1001001001");
+  const [cif, setCif] = useState("1001001000");
   const [sopCount, setSopCount] = useState<number | null>(null);
   const [input, setInput] = useState("");
   const [image, setImage] = useState<string | undefined>();

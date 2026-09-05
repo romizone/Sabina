@@ -32,4 +32,4 @@ Self-host alternatif: `docker compose up -d --build` lalu Caddy di `Caddyfile`.
 
 ## Demo nasabah
 
-Pilih CIF di panel kiri chat, misalnya Yuliawan Cahaya (`1001001001`) atau Yofa Arindita (`1001001002`).
+Pilih CIF di panel kiri chat, misalnya Ierfan Syuckhur (`1001001000`) atau Somat Gzodin (`1001001001`).

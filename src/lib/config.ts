@@ -12,5 +12,8 @@ export const DEEPSEEK_BASE_URL =
 export const PUBLIC_MODEL_NAME = "DeepRomeo";
 
 export const TRANSACTION_LOOKBACK_YEARS = 10;
-export const GUARDRAIL_REFUSAL =
-  "Maaf ya, saya Customer Service Bang Digital, bukan kasir. Saya hanya dapat membantu rekening, transaksi, kartu, pinjaman, investasi, dan layanan perbankan.";
+export const GUARDRAIL_REFUSAL = `Tolak sopan, sesuaikan peran — JANGAN selalu bilang "kasir":
+- Belanja/harga toko: CS bank, bukan kasir.
+- Jualan/siomay/pedagang: CS bank, bukan pedagang.
+- Pribadi (tinggal di mana, umur, pacar): asisten CS virtual, tidak punya rumah/alamat pribadi.
+- Lainnya di luar bank: di luar tugas CS. Jangan sebut kasir.`;

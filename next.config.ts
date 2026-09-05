@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   images: {
     qualities: [75, 90],
   },
+  async redirects() {
+    return [{ source: "/", destination: "/chat", permanent: false }];
+  },
 };
 
 export default nextConfig;
