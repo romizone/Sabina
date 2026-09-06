@@ -18,7 +18,8 @@ function monthLabel(key: string): string {
 
 function txLine(tx: BankTransaction): string {
   const signed = tx.credit > 0 ? `+${formatIdr(tx.credit)}` : `-${formatIdr(tx.debit)}`;
-  return `${formatIdDateTime(new Date(tx.bookedAt))} | ${tx.accountNo} | ${tx.type} | ${tx.description} | ${signed} | saldo ${formatIdr(tx.balanceAfter)} | ${tx.status} | ref ${tx.reference}`;
+  const reason = tx.failReason ? ` | alasan ${tx.failReason}` : "";
+  return `${formatIdDateTime(new Date(tx.bookedAt))} | ${tx.accountNo} | ${tx.type} | ${tx.description} | ${signed} | saldo ${formatIdr(tx.balanceAfter)} | ${tx.status} | ref ${tx.reference}${reason}`;
 }
 
 export function customerRagDocuments(profile: CustomerProfile, clock = now()): RagDocument[] {
@@ -268,6 +269,37 @@ export function customerRagDocuments(profile: CustomerProfile, clock = now()): R
         ].join("\n"),
       });
     }
+  }
+
+  const failed = rows
+    .filter((tx) => tx.status === "failed" || tx.status === "reversed")
+    .filter((tx) => tx.bookedAt >= new Date(clock.getTime() - 24 * 60 * 60 * 1000).toISOString())
+    .sort((a, b) => b.bookedAt.localeCompare(a.bookedAt))
+    .slice(0, 5);
+  if (failed.length) {
+    docs.push({
+      id: `DATA-FAIL-${cif}`,
+      kind: "transaction",
+      title: `Transaksi gagal ${name}`,
+      category: "Transaksi Gagal",
+      cif,
+      keywords: [
+        "transaksi gagal",
+        "qris gagal",
+        "transfer gagal",
+        "gagal",
+        "pending",
+        "qris",
+        "mutasi",
+        name.toLowerCase(),
+      ],
+      text: [
+        `Nasabah: ${name} (CIF ${cif}) sudah terotentikasi.`,
+        "5 transaksi gagal dalam 24 jam terakhir (waktu, kanal, nominal, alasan):",
+        ...failed.map(txLine),
+        "Jangan minta RRN/merchant di awal.",
+      ].join("\n"),
+    });
   }
 
   return docs;

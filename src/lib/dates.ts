@@ -95,9 +95,84 @@ const MONTHS: Record<string, number> = {
   desember: 11,
 };
 
+function hoursAgo(clock: Date, hours: number): Date {
+  return new Date(clock.getTime() - hours * 60 * 60 * 1000);
+}
+
+function minutesAgo(clock: Date, minutes: number): Date {
+  return new Date(clock.getTime() - minutes * 60 * 1000);
+}
+
+function wordOrNumber(token: string): number {
+  if (token === "satu" || token === "se") return 1;
+  if (token === "dua") return 2;
+  if (token === "tiga") return 3;
+  return Number(token);
+}
+
 export function parseDateRange(text: string, clock = now()): DateRange | null {
   const q = text.toLowerCase();
   const today = startOfDay(clock);
+
+  const minuteMatch = q.match(/\b(\d{1,3}|satu|se)\s*menit(?:\s+terakhir)?\b/);
+  if (minuteMatch) {
+    const n = Math.max(1, wordOrNumber(minuteMatch[1]!));
+    return {
+      from: minutesAgo(clock, n),
+      to: clock,
+      label: `${n} menit terakhir`,
+    };
+  }
+
+  const hourMatch = q.match(/\b(\d{1,2}|satu|se)\s*jam(?:\s+terakhir)?\b/);
+  if (hourMatch) {
+    const n = Math.max(1, wordOrNumber(hourMatch[1]!));
+    return {
+      from: hoursAgo(clock, n),
+      to: clock,
+      label: `${n} jam terakhir`,
+    };
+  }
+
+  if (/\b(barusan|baru saja|baru aja)\b/.test(q)) {
+    return { from: hoursAgo(clock, 1), to: clock, label: "1 jam terakhir" };
+  }
+
+  if (/tadi pagi/.test(q)) {
+    const from = new Date(today);
+    const to = new Date(today);
+    to.setHours(12, 0, 0, 0);
+    return { from, to: to > clock ? clock : to, label: "tadi pagi" };
+  }
+  if (/tadi siang/.test(q)) {
+    const from = new Date(today);
+    from.setHours(11, 0, 0, 0);
+    const to = new Date(today);
+    to.setHours(15, 0, 0, 0);
+    return { from, to: to > clock ? clock : to, label: "tadi siang" };
+  }
+  if (/tadi sore/.test(q)) {
+    const from = new Date(today);
+    from.setHours(15, 0, 0, 0);
+    const to = new Date(today);
+    to.setHours(18, 30, 0, 0);
+    return { from, to: to > clock ? clock : to, label: "tadi sore" };
+  }
+  if (/tadi malam/.test(q)) {
+    const from = new Date(today);
+    from.setHours(18, 0, 0, 0);
+    return { from, to: endOfDay(clock), label: "tadi malam" };
+  }
+  if (/\btadi\b/.test(q)) {
+    return { from: today, to: endOfDay(clock), label: "hari ini" };
+  }
+
+  if (/\bsemalam\b/.test(q)) {
+    const from = new Date(today);
+    from.setDate(from.getDate() - 1);
+    from.setHours(18, 0, 0, 0);
+    return { from, to: clock, label: "semalam" };
+  }
 
   if (/(hari ini|today)/.test(q)) {
     return { from: today, to: endOfDay(clock), label: "hari ini" };

@@ -45,7 +45,8 @@ export function wantsMutasi(message: string): boolean {
 
 function txLine(tx: BankTransaction): string {
   const signed = tx.credit > 0 ? `+${formatIdr(tx.credit)}` : `-${formatIdr(tx.debit)}`;
-  return `${formatIdDateTime(new Date(tx.bookedAt))} | ${tx.accountNo} | ${tx.type} | ${tx.description} | ${signed} | saldo ${formatIdr(tx.balanceAfter)} | ${tx.status} | ${tx.reference}`;
+  const reason = tx.failReason ? ` | alasan ${tx.failReason}` : "";
+  return `${formatIdDateTime(new Date(tx.bookedAt))} | ${tx.accountNo} | ${tx.type} | ${tx.description} | ${signed} | saldo ${formatIdr(tx.balanceAfter)} | ${tx.status} | ${tx.reference}${reason}`;
 }
 
 export function buildCustomerContext(
@@ -101,6 +102,11 @@ export function buildCustomerContext(
   });
 
   const recent = filterTransactions(rows, { limit: 12 });
+  const failedRecent = [...rows]
+    .filter((t) => t.status === "failed" || t.status === "reversed")
+    .filter((t) => t.bookedAt >= new Date(clock.getTime() - 24 * 60 * 60 * 1000).toISOString())
+    .sort((a, b) => b.bookedAt.localeCompare(a.bookedAt))
+    .slice(0, 5);
 
   const text = [
     `Waktu sistem (compute): ${clock.toISOString()}`,
@@ -133,6 +139,12 @@ export function buildCustomerContext(
     `=== TRANSAKSI PADA RENTANG ${range.label.toUpperCase()} (${formatIdDate(range.from)} s.d. ${formatIdDate(range.to)}) ===`,
     `Jumlah baris dikirim: ${detailed.length}`,
     ...detailed.map(txLine),
+    "",
+    "=== TRANSAKSI GAGAL TERAKHIR (langsung sampaikan bila nasabah tanya gagal/QRIS/transfer) ===",
+    ...(failedRecent.length
+      ? failedRecent.map(txLine)
+      : ["- Tidak ada transaksi gagal pada ledger ini."]),
+    "Nasabah sesi sudah terotentikasi. Jangan minta RRN/merchant sebelum menyebut 5 gagal dalam 24 jam terakhir di atas.",
     "",
     "=== 12 TRANSAKSI TERAKHIR (semua produk) ===",
     ...recent.map(txLine),

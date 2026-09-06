@@ -62,6 +62,25 @@ const BILLERS = [
 
 const EWALLETS = ["GoPay", "OVO", "DANA", "ShopeePay", "LinkAja"] as const;
 
+const QRIS_FAIL_REASONS = [
+  "Timeout jaringan acquirer (issuer timeout)",
+  "QR kadaluarsa / sesi pembayaran habis",
+  "Limit harian QRIS sempat terlampaui",
+  "Merchant menolak / switch decline",
+] as const;
+
+const ATM_FAIL_REASONS = [
+  "Timeout host ATM",
+  "Gagal dispense — jurnal ATM tidak cocok",
+  "Saldo available tidak cukup saat otorisasi",
+] as const;
+
+const TRANSFER_FAIL_REASONS = [
+  "Rekening tujuan tidak merespons switch",
+  "Timeout BI-FAST / antrian putus",
+  "Nama penerima tidak match setelah cooling-off",
+] as const;
+
 function txTime(
   year: number,
   month: number,
@@ -105,6 +124,7 @@ function pushTx(
     balanceAfter: Math.max(0, Math.round(running.balance)),
     status: partial.status,
     reference: partial.reference,
+    failReason: partial.failReason,
   });
 }
 
@@ -257,6 +277,7 @@ function generateSavingsMonth(
   for (let i = 0; i < atmCount; i += 1) {
     const loc = pick(rng, ATM_LOCS);
     const withdraw = rng() > 0.18;
+    const atmOk = rng() > 0.03;
     pushTx(
       list,
       {
@@ -274,7 +295,8 @@ function generateSavingsMonth(
           ? amount(rng, 200_000, 2_500_000, 50_000)
           : amount(rng, 250_000, 5_000_000, 50_000),
         credit: 0,
-        status: rng() > 0.03 ? "success" : "failed",
+        status: atmOk ? "success" : "failed",
+        failReason: atmOk ? undefined : pick(rng, ATM_FAIL_REASONS),
         reference: ref(rng),
       },
       running,
@@ -284,6 +306,7 @@ function generateSavingsMonth(
   const qrisCount = 4 + Math.floor(rng() * 8);
   for (let i = 0; i < qrisCount; i += 1) {
     const merchant = pick(rng, QRIS_MERCHANTS);
+    const qrisOk = rng() > 0.04;
     pushTx(
       list,
       {
@@ -297,7 +320,8 @@ function generateSavingsMonth(
         merchant,
         debit: amount(rng, 18_000, 650_000, 1000),
         credit: 0,
-        status: "success",
+        status: qrisOk ? "success" : "failed",
+        failReason: qrisOk ? undefined : pick(rng, QRIS_FAIL_REASONS),
         reference: ref(rng),
       },
       running,
@@ -373,6 +397,7 @@ function generateSavingsMonth(
 
   if (rng() > 0.55) {
     const inbound = rng() > 0.4;
+    const transferOk = inbound || rng() > 0.06;
     pushTx(
       list,
       {
@@ -387,7 +412,8 @@ function generateSavingsMonth(
           : "Transfer keluar BI-FAST",
         debit: inbound ? 0 : amount(rng, 200_000, 8_000_000, 50_000),
         credit: inbound ? amount(rng, 200_000, 12_000_000, 50_000) : 0,
-        status: "success",
+        status: transferOk ? "success" : "failed",
+        failReason: transferOk ? undefined : pick(rng, TRANSFER_FAIL_REASONS),
         reference: ref(rng),
       },
       running,
@@ -778,13 +804,123 @@ function applyRunningBalances(rows: BankTransaction[]): BankTransaction[] {
   });
 }
 
+const DEMO_FAIL_PREFIX = "TRXDEMO";
+const DEMO_FAIL_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+type DemoFailSeed = {
+  offsetMs: number;
+  type: TxType;
+  channel: string;
+  description: string;
+  merchant?: string;
+  location?: string;
+  debit: number;
+  failReason: string;
+};
+
+/** Five guaranteed failures in the last 24h, newest first by offset. */
+function demoFailSeeds(cif: string): DemoFailSeed[] {
+  const tail = Number(cif.slice(-2)) || 0;
+  return [
+    {
+      offsetMs: 22 * 60 * 1000,
+      type: "qris",
+      channel: "QRIS",
+      description: "QRIS Kopi Kenangan",
+      merchant: "Kopi Kenangan",
+      debit: 87_000 + tail * 100,
+      failReason: "Timeout jaringan acquirer (issuer timeout)",
+    },
+    {
+      offsetMs: 4 * 60 * 60 * 1000,
+      type: "qris",
+      channel: "QRIS",
+      description: "QRIS Alfamart",
+      merchant: "Alfamart",
+      debit: 152_000 + tail * 100,
+      failReason: "QR kadaluarsa / sesi pembayaran habis",
+    },
+    {
+      offsetMs: 9 * 60 * 60 * 1000,
+      type: "qris",
+      channel: "QRIS",
+      description: "QRIS Grab",
+      merchant: "Grab",
+      debit: 64_000 + tail * 100,
+      failReason: "Limit harian QRIS sempat terlampaui",
+    },
+    {
+      offsetMs: 15 * 60 * 60 * 1000,
+      type: "atm_withdraw",
+      channel: "ATM",
+      description: "Tarik tunai ATM Bang Digital Senayan",
+      location: "ATM Bang Digital Senayan",
+      debit: 500_000 + tail * 1000,
+      failReason: "Timeout host ATM",
+    },
+    {
+      offsetMs: 21 * 60 * 60 * 1000,
+      type: "qris",
+      channel: "QRIS",
+      description: "QRIS Indomaret",
+      merchant: "Indomaret",
+      debit: 48_000 + tail * 100,
+      failReason: "Merchant menolak / switch decline",
+    },
+  ];
+}
+
+function overlayDemoFailures(
+  profile: CustomerProfile,
+  rows: BankTransaction[],
+  clock: Date,
+): BankTransaction[] {
+  const cif = profile.cif.cif;
+  const prefix = `${DEMO_FAIL_PREFIX}${cif}`;
+  const cutoffIso = new Date(clock.getTime() - DEMO_FAIL_WINDOW_MS).toISOString();
+  const base = rows.filter((row) => {
+    if (row.id.startsWith(prefix)) return false;
+    if (
+      (row.status === "failed" || row.status === "reversed") &&
+      row.bookedAt >= cutoffIso
+    ) {
+      return false;
+    }
+    return true;
+  });
+  const account =
+    profile.savings.find((a) => a.type === "savings") ?? profile.savings[0];
+  if (!account) return base;
+  const balanceAfter = currentBalance(base, account.accountNo);
+  const extras: BankTransaction[] = demoFailSeeds(cif).map((seed, index) => {
+    const at = new Date(clock.getTime() - seed.offsetMs);
+    return {
+      id: `${prefix}${pad(index + 1, 2)}`,
+      bookedAt: isoDateTime(at),
+      accountNo: account.accountNo,
+      cif,
+      type: seed.type,
+      channel: seed.channel,
+      description: seed.description,
+      merchant: seed.merchant,
+      location: seed.location,
+      debit: seed.debit,
+      credit: 0,
+      balanceAfter,
+      status: "failed" as const,
+      reference: `BDFAIL${cif.slice(-4)}${pad(index + 1, 2)}`,
+      failReason: seed.failReason,
+    };
+  });
+  return [...base, ...extras].sort((a, b) => a.bookedAt.localeCompare(b.bookedAt));
+}
+
 export function transactionsFor(profile: CustomerProfile, clock = now()): BankTransaction[] {
   const key = `${profile.cif.cif}:${clock.toISOString().slice(0, 10)}`;
   const hit = cache.get(key);
-  if (hit) return hit;
-  const rows = applyRunningBalances(generateRaw(profile, clock));
-  cache.set(key, rows);
-  return rows;
+  const rows = hit ?? applyRunningBalances(generateRaw(profile, clock));
+  if (!hit) cache.set(key, rows);
+  return overlayDemoFailures(profile, rows, clock);
 }
 
 export function filterTransactions(

@@ -15,7 +15,13 @@ const VERIF_ASK =
   /tanggal lahir|tgl lahir|tgl\.?\s*lahir|ibu kandung|nama ibu|nama gadis|verifikasi|otentikasi|autentikasi|3 data|tiga data|mother maiden|tempat.?tanggal lahir|\bttl\b|data otentikasi/i;
 
 const PRIOR_BANKING =
-  /\b(saldo|mutasi|rekening|tabungan|giro|deposito|transaksi|transfer|kartu|kredit|pinjam|pinjaman|tagihan|limit|cif|atm|qris|blokir|unblokir|statement|koran|wealth|invest|reksa|angsuran|plafon|bunga|nasabah)\b/i;
+  /\b(saldo|mutasi|rekening|tabungan|giro|deposito|transaksi|transfer|kartu|kredit|pinjam|pinjaman|tagihan|limit|cif|atm|qris|blokir|unblokir|statement|koran|wealth|invest|reksa|angsuran|plafon|bunga|nasabah|pembayaran|merchant|rrn)\b/i;
+
+const TIME_WINDOW_FOLLOWUP =
+  /\b(barusan|baru saja|baru aja|semalam|tadi(?:\s+(?:pagi|siang|sore|malam))?|kemarin|hari ini|bulan ini|minggu (?:ini|lalu)|(?:\d+|satu|se|dua|tiga)\s*(?:jam|menit|hari|minggu|bulan)(?:\s+terakhir)?)\b/i;
+
+const ASK_TX_DETAILS =
+  /tanggal|jam\b|nominal|merchant|rrn|referen|bukti transaksi|nama toko|nama merchant/i;
 
 const SALDO_INQUIRY = /\b(saldo|balance|posisi rekening|cek rekening|berapa uang)\b/i;
 
@@ -69,18 +75,47 @@ function lastBankingUserQuery(prior: ChatMessage[]): string | undefined {
   return undefined;
 }
 
+function lastUserIndex(messages: ChatMessage[]): number {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.role === "user") return i;
+  }
+  return -1;
+}
+
+export function looksLikeTimeWindowFollowUp(message: string): boolean {
+  const text = message.trim();
+  if (!text || text.length > 160) return false;
+  if (/\b(ignore (all|previous|above)|system prompt|jailbreak|developer mode)\b/i.test(text)) {
+    return false;
+  }
+  if (isHardOffTopicMessage(text)) return false;
+  return TIME_WINDOW_FOLLOWUP.test(text);
+}
+
+export function resolveTimeWindowFollowUp(messages: ChatMessage[]): MockVerification {
+  const lastUserIdx = lastUserIndex(messages);
+  if (lastUserIdx < 0) return { isFollowUp: false };
+  const last = messages[lastUserIdx]!;
+  if (!looksLikeTimeWindowFollowUp(last.content)) return { isFollowUp: false };
+
+  const prior = messages.slice(0, lastUserIdx);
+  const priorQuery = lastBankingUserQuery(prior);
+  const assistantAsked = prior.some((m) => m.role === "assistant" && ASK_TX_DETAILS.test(m.content));
+  if (!priorQuery && !assistantAsked) {
+    return { isFollowUp: false };
+  }
+  return {
+    isFollowUp: true,
+    priorQuery: priorQuery || "transaksi gagal",
+  };
+}
+
 function assistantAskedVerification(prior: ChatMessage[]): boolean {
   return prior.some((m) => m.role === "assistant" && VERIF_ASK.test(m.content));
 }
 
 export function resolveMockVerification(messages: ChatMessage[]): MockVerification {
-  let lastUserIdx = -1;
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    if (messages[i]?.role === "user") {
-      lastUserIdx = i;
-      break;
-    }
-  }
+  const lastUserIdx = lastUserIndex(messages);
   if (lastUserIdx < 0) return { isFollowUp: false };
   const last = messages[lastUserIdx]!;
   if (!looksLikeVerificationReply(last.content)) return { isFollowUp: false };

@@ -456,8 +456,8 @@ const OPS: Op[] = [
     keywords: ["qris", "scan", "refund qris"],
     summary: "QRIS yang tertaut {produk} realtime; refund hanya jika merchant/switch setuju.",
     steps: [
-      "Cek RRN dan status settlement {produk}.",
-      "Bila eligible, ajukan refund.",
+      "Cek mutasi QRIS gagal pada {produk} (nasabah sudah terotentikasi); sebut 5 gagal dalam 24 jam terakhir.",
+      "RRN opsional. Bila eligible, ajukan refund.",
       "Dana kembali 1-7 hari kerja.",
     ],
     sla: "bayar realtime, refund s.d. 7 hd",

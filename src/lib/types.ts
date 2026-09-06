@@ -121,6 +121,7 @@ export interface BankTransaction {
   balanceAfter: number;
   status: "success" | "pending" | "failed" | "reversed";
   reference: string;
+  failReason?: string;
 }
 
 export interface DateRange {

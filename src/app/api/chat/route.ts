@@ -1,5 +1,6 @@
 import { PUBLIC_MODEL_NAME } from "@/lib/config";
 import { findCustomer, getCustomer } from "@/lib/data/customers";
+import { formatFailedTxReply, isFailedTxInquiry } from "@/lib/data/failed-tx";
 import { buildCustomerContext, wantsMutasi } from "@/lib/data/snapshot";
 import { classifyGuard, refusalText } from "@/lib/guardrail";
 import { formatRetrieved, retrieveRag } from "@/lib/rag";
@@ -10,6 +11,7 @@ import {
   isSaldoInquiry,
   mockVerifiedInstruction,
   resolveMockVerification,
+  resolveTimeWindowFollowUp,
   verifiedSavingsReply,
 } from "@/lib/verification";
 import { sopCount } from "@/lib/sop/catalog";
@@ -92,14 +94,22 @@ async function handleChat(body: Incoming) {
   }
 
   const verified = resolveMockVerification(messages);
-  const decision = verified.isFollowUp ? "allow" : classifyGuard(userText, hasImage);
-  const retrievalQuery = verified.isFollowUp
-    ? verified.priorQuery || "saldo tabungan"
+  const timeFollow = verified.isFollowUp
+    ? { isFollowUp: false as const }
+    : resolveTimeWindowFollowUp(messages);
+  const inThread = verified.isFollowUp || timeFollow.isFollowUp;
+  const decision = inThread ? "allow" : classifyGuard(userText, hasImage);
+  const priorQuery = verified.priorQuery || timeFollow.priorQuery;
+  const retrievalQuery = inThread && priorQuery
+    ? verified.isFollowUp
+      ? priorQuery
+      : `${priorQuery} ${userText}`.trim()
     : userText;
   const profile =
-    (body.cif ? getCustomer(body.cif) : undefined) ??
+    (body.cif ? getCustomer(body.cif) : getCustomer("1001001000")) ??
     (retrievalQuery ? findCustomer(retrievalQuery) : undefined) ??
     (userText ? findCustomer(userText) : undefined);
+  const failedInquiry = isFailedTxInquiry(retrievalQuery) || isFailedTxInquiry(userText);
 
   const lookupId = ticketLookupId(userText);
   let lookedUp: ReturnType<typeof findTicket>;
@@ -108,7 +118,7 @@ async function handleChat(body: Incoming) {
   try {
     lookedUp = lookupId ? findTicket(lookupId) : undefined;
     opened =
-      decision === "refuse" || lookedUp || verified.isFollowUp
+      decision === "refuse" || lookedUp || verified.isFollowUp || failedInquiry
         ? null
         : createTicket({ profile, cif: body.cif, message: userText, hasImage });
     openTickets = profile ? listTickets(profile.cif.cif).slice(0, 5) : [];
@@ -180,6 +190,10 @@ async function handleChat(body: Incoming) {
     return friendlyStream(verifiedSavingsReply(profile), meta);
   }
 
+  if (failedInquiry && profile) {
+    return friendlyStream(formatFailedTxReply(profile, retrievalQuery), meta);
+  }
+
   const history = messages.slice(-8).map((m) => {
     if (m.role === "user" && m.imageDataUrl) {
       return {
@@ -210,7 +224,9 @@ async function handleChat(body: Incoming) {
     "Anda memiliki akses penuh ke snapshot core, papan layanan, lokasi, dan SOP RAG di bawah ini.",
     verified.isFollowUp
       ? mockVerifiedInstruction(verified.priorQuery || retrievalQuery)
-      : "",
+      : timeFollow.isFollowUp
+        ? `=== FOLLOW-UP JENDELA WAKTU ===\nNasabah mempersempit waktu setelah pertanyaan perbankan. Tetap topik bank. Jangan tolak. Lanjutkan: "${priorQuery || retrievalQuery}"`
+        : "",
     customerCtx ? customerCtx.text : "Tidak ada CIF terpilih.",
     serviceCtx,
     wantsMutasi(retrievalQuery)

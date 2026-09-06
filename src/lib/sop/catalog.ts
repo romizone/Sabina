@@ -246,10 +246,10 @@ function coreSops(): SopDocument[] {
     keywords: ["transfer gagal", "pending", "uang tertahan", "belum masuk"],
     summary: "Pending > 15 menit dicek ke switch. Jika debet sudah terjadi dan kredit belum, lakukan recon dan refund otomatis H+1 paling lambat.",
     steps: [
-      "Minta reference, jam, nominal, rekening tujuan.",
-      "Cek status core dan switch.",
+      "Nasabah sesi sudah terotentikasi — cek mutasi gagal di core dulu, jangan minta RRN/reference di awal.",
+      "Sampaikan 5 transaksi gagal dalam 24 jam terakhir: waktu, kanal, nominal, alasan.",
       "Jika sukses di kita gagal di tujuan: refund.",
-      "Berikan nomor tiket pengaduan.",
+      "RRN/nominal/tujuan opsional hanya untuk mempersempit. Tiket bila perlu investigasi.",
     ],
     sla: "1x24 jam untuk refund otomatis, 3 hari kerja investigasi manual",
     channels: ["Live CS", "Aplikasi Bang"],
@@ -276,6 +276,23 @@ function coreSops(): SopDocument[] {
 
   add("QR", {
     category: "QRIS",
+    title: "Inquiry transaksi QRIS gagal",
+    keywords: ["transaksi qris gagal", "qris gagal kenapa", "kenapa qris", "qris error", "pembayaran qris gagal"],
+    summary: "Nasabah chat demo sudah terotentikasi. CS langsung cek ledger dan menyampaikan 5 transaksi gagal dalam 24 jam terakhir tanpa meminta RRN atau merchant di awal.",
+    steps: [
+      "Cek mutasi QRIS gagal pada CIF sesi.",
+      "Sampaikan waktu, merchant, nominal, dan alasan (5 dalam 24 jam terakhir).",
+      "Jika jendela waktu (barusan / 1 jam terakhir) lebih sempit, sebut yang di jendela dulu lalu tetap tampilkan sisa dari 5 gagal 24 jam.",
+      "RRN/merchant opsional hanya untuk mempersempit.",
+    ],
+    sla: "realtime di Live CS",
+    channels: ["Live CS"],
+    exceptions: ["Jendela waktu tanpa hit: tetap tampilkan 5 gagal dalam 24 jam terakhir"],
+    products: ["BangTabungan Digital"],
+  });
+
+  add("QR", {
+    category: "QRIS",
     title: "Pembayaran QRIS merchant",
     keywords: ["qris", "scan qris", "bayar qris"],
     summary: "Pembayaran QRIS debet rekening utama. Limit per transaksi dan harian berbeda per segmen.",
@@ -294,11 +311,11 @@ function coreSops(): SopDocument[] {
   add("QR", {
     category: "QRIS",
     title: "Refund QRIS salah bayar",
-    keywords: ["refund qris", "salah transfer qris", "qris gagal"],
-    summary: "Refund QRIS hanya jika merchant menyetujui atau switch menandai gagal. CS tidak bisa memaksa refund tanpa bukti.",
+    keywords: ["refund qris", "salah transfer qris", "qris gagal", "transaksi qris gagal", "kenapa qris"],
+    summary: "Nasabah demo sudah terotentikasi. CS cek mutasi QRIS gagal di core dulu, sampaikan 5 transaksi gagal dalam 24 jam terakhir, baru tawarkan refund bila eligible.",
     steps: [
-      "Minta bukti screenshot dan RRN.",
-      "Cek status settlement.",
+      "Cek mutasi QRIS gagal pada CIF sesi; sebut waktu, merchant, nominal, alasan (5 dalam 24 jam terakhir).",
+      "Jangan minta RRN/screenshot di awal — itu opsional untuk mempersempit.",
       "Ajukan refund ke acquirer bila eligible.",
       "Dana kembali 1-7 hari kerja.",
     ],

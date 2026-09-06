@@ -68,7 +68,7 @@ Cooling-off 24 jam untuk kenaikan limit dan tambah rekening tujuan baru di peran
     briefing: `In-bank Bang Digital: gratis, realtime. BI-FAST: 24/7, Rp 2.500 di bawah Rp 250 juta (promo: 10x gratis/bulan BangTabungan Digital).
 RTGS: same-day sebelum 14.30 WIB, Rp 25.000. SKN: Rp 2.900, batch hari kerja.
 Rekening tujuan baru: cooling-off + konfirmasi nama. Nama tidak match: tampilkan risiko, jangan dipaksa CS.
-Pending > 15 menit: cek reference, jam, nominal, tujuan. Refund otomatis 1x24 jam jika debet sudah dan kredit gagal; investigasi manual 3 hd.
+Pending > 15 menit: cek mutasi gagal di core dulu (nasabah sesi sudah terotentikasi). Sampaikan 5 transaksi gagal dalam 24 jam terakhir. RRN/jam/nominal opsional. Refund otomatis 1x24 jam jika debet sudah dan kredit gagal; investigasi manual 3 hd.
 Tambah beneficiary: OTP, berlaku penuh setelah cooling-off 24 jam (limit kecil bisa segera).`,
   },
   {
@@ -84,7 +84,7 @@ Incoming: minta MT103 / reference pengirim. Hold AML mungkin 1x24 jam untuk nomi
     title: "QRIS bayar, terima, refund",
     keywords: ["qris", "scan", "qr", "merchant", "salah bayar", "refund qris"],
     briefing: `Bayar QRIS debet rekening utama, PIN, realtime. Limit harian: personal Rp 10 jt, affluent 25 jt, priority 50 jt, sme 25 jt.
-QR kadaluarsa / merchant nonaktif tidak bisa dipaksa settle. Refund hanya jika merchant/switch setuju; 1–7 hd. Butuh RRN + screenshot.
+QR kadaluarsa / merchant nonaktif tidak bisa dipaksa settle. Refund hanya jika merchant/switch setuju; 1–7 hd. RRN + screenshot opsional, jangan ditanya di awal — cek 3 QRIS gagal terakhir di ledger dulu.
 QRIS Cross-border (negara yang didukung) ikut kurs + biaya jaringan. Tip/donasi opsional di merchant yang aktifkan.
 BangQRIS Merchant (SME): settlement T+1 ke BangGiro, MDR mengikuti skema nasional.`,
   },
