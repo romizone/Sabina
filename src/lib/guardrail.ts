@@ -65,6 +65,10 @@ function isHardOffTopic(text: string): boolean {
   );
 }
 
+export function isHardOffTopicMessage(text: string): boolean {
+  return isHardOffTopic(text);
+}
+
 export function classifyGuard(message: string, hasImage: boolean): GuardDecision {
   const text = message.trim();
   if (JAILBREAK.test(text)) return "refuse";

@@ -153,53 +153,45 @@ export function ChatApp() {
   }
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[260px_minmax(0,1fr)_280px]">
-      <aside className="border border-[#e4e8ee] bg-white p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0b3d91]">
-          Nasabah demo
-        </p>
-        <div className="mt-3 space-y-1.5">
-          {customers.map((c) => (
-            <button
-              key={c.cif}
-              type="button"
-              onClick={() => setCif(c.cif)}
-              className={`w-full border px-3 py-2 text-left ${
-                cif === c.cif
-                  ? "border-[#0b3d91] bg-[#eef3fb]"
-                  : "border-[#e4e8ee] bg-white"
-              }`}
-            >
-              <span className="block text-sm font-semibold text-[#1a1d23]">{c.name}</span>
-              <span className="block text-[11px] text-[#5c6570]">
-                CIF {c.cif} · {c.city}
-              </span>
-            </button>
-          ))}
-        </div>
-        {selected ? (
-          <p className="mt-4 text-[11px] leading-5 text-[#5c6570]">
-            Segmen {selected.segment}. Transaksi dihitung otomatis dari hari ini
-            mundur 10 tahun.
-          </p>
-        ) : null}
-      </aside>
-
-      <section className="flex min-h-[72vh] flex-col border border-[#e4e8ee] bg-white">
-        <div className="flex items-center gap-3 border-b border-[#e4e8ee] px-4 py-3">
-          <Image
-            src="/images/sabina-avatar.png"
-            alt="Sabina"
-            width={44}
-            height={44}
-            className="h-11 w-11 rounded-full object-cover"
-          />
-          <div>
-            <p className="text-sm font-bold text-[#1a1d23]">Sabina</p>
-            <p className="text-[11px] text-[#5c6570]">
-              Live CS Bang Digital · DeepRomeo
-            </p>
+    <main className="mx-auto grid w-full max-w-6xl min-h-0 flex-1 grid-cols-1 gap-3 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:grid-cols-[260px_minmax(0,1fr)_280px] lg:gap-4 lg:px-4 lg:py-4">
+      <section className="flex min-h-[calc(100dvh-8.5rem)] flex-col overflow-hidden rounded-2xl border border-[#e4e8ee] bg-white shadow-[0_10px_30px_rgba(11,61,145,0.05)] lg:col-start-2 lg:row-start-1 lg:min-h-[72vh]">
+        <div className="flex items-center justify-between gap-3 border-b border-[#e4e8ee] bg-[linear-gradient(180deg,#f8faff_0%,#ffffff_100%)] px-3 py-3 sm:px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative shrink-0">
+              <Image
+                src="/images/sabina-avatar.png"
+                alt="Sabina"
+                width={44}
+                height={44}
+                className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-[0_0_0_1px_#d6deea]"
+              />
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#16a34a] ring-2 ring-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-sm font-bold text-[#1a1d23]">
+                Chat Sabina
+                <span className="rounded-full bg-[#e8f8ee] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#15803d]">
+                  Online
+                </span>
+              </p>
+              <p className="truncate text-[11px] text-[#5c6570]">
+                {selected
+                  ? `${selected.name} · CIF ${selected.cif}`
+                  : "Live CS Bang Digital · biasanya membalas seketika"}
+              </p>
+              <a
+                href="#nasabah-demo"
+                className="mt-0.5 inline-block text-[11px] font-semibold text-[#0b3d91] lg:hidden"
+              >
+                Ganti nasabah demo
+              </a>
+            </div>
           </div>
+          <p className="hidden shrink-0 text-right text-[10px] leading-4 text-[#6b7380] sm:block">
+            Sesi terenkripsi
+            <br />
+            DeepRomeo
+          </p>
         </div>
 
         <div ref={scroller} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
@@ -218,10 +210,10 @@ export function ChatApp() {
                 />
               ) : null}
               <div
-                className={`max-w-[80%] px-3 py-2 text-sm leading-6 ${
+                className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-6 ${
                   m.role === "user"
-                    ? "bg-[#0b3d91] text-white"
-                    : "bg-[#f4f6f8] text-[#1a1d23]"
+                    ? "rounded-br-md bg-[#0b3d91] text-white"
+                    : "rounded-bl-md bg-[#f4f6f8] text-[#1a1d23]"
                 }`}
               >
                 {m.imageDataUrl ? (
@@ -234,14 +226,14 @@ export function ChatApp() {
           ))}
         </div>
 
-        <div className="border-t border-[#e4e8ee] px-4 py-3">
-          <div className="mb-2 flex flex-wrap gap-1.5">
+        <div className="border-t border-[#e4e8ee] bg-white px-3 py-3 sm:px-4">
+          <div className="hide-scrollbar mb-2 flex gap-1.5 overflow-x-auto pb-0.5 lg:flex-wrap lg:overflow-visible">
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => void send(s)}
-                className="border border-[#e4e8ee] px-2 py-1 text-[11px] text-[#5c6570] hover:border-[#0b3d91] hover:text-[#0b3d91]"
+                className="shrink-0 rounded-full border border-[#e4e8ee] px-2.5 py-1 text-[11px] text-[#5c6570] hover:border-[#0b3d91] hover:text-[#0b3d91]"
               >
                 {s}
               </button>
@@ -256,7 +248,7 @@ export function ChatApp() {
             </div>
           ) : null}
           <form
-            className="flex items-end gap-2"
+            className="flex flex-col gap-2 sm:flex-row sm:items-end"
             onSubmit={(e) => {
               e.preventDefault();
               void send(input, image);
@@ -269,19 +261,12 @@ export function ChatApp() {
               className="hidden"
               onChange={(e) => onPickFile(e.target.files?.[0])}
             />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="border border-[#e4e8ee] px-3 py-2 text-xs text-[#5c6570]"
-            >
-              Foto
-            </button>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               rows={2}
               placeholder="Tulis pertanyaan perbankan..."
-              className="min-h-[44px] flex-1 resize-none border border-[#e4e8ee] px-3 py-2 text-sm outline-none focus:border-[#0b3d91]"
+              className="min-h-[44px] w-full min-w-0 flex-1 resize-none rounded-xl border border-[#e4e8ee] px-3 py-2 text-sm outline-none focus:border-[#0b3d91]"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -289,18 +274,59 @@ export function ChatApp() {
                 }
               }}
             />
-            <button
-              type="submit"
-              disabled={busy}
-              className="bg-[#0b3d91] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              Kirim
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="min-h-11 flex-1 rounded-xl border border-[#e4e8ee] px-3 py-2 text-xs font-semibold text-[#5c6570] sm:flex-none"
+              >
+                Foto
+              </button>
+              <button
+                type="submit"
+                disabled={busy}
+                className="min-h-11 flex-1 rounded-xl bg-[#0b3d91] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 sm:flex-none"
+              >
+                Kirim
+              </button>
+            </div>
           </form>
         </div>
       </section>
 
-      <aside className="border border-[#e4e8ee] bg-white p-4">
+      <aside
+        id="nasabah-demo"
+        className="rounded-2xl border border-[#e4e8ee] bg-white p-4 lg:col-start-1 lg:row-start-1"
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0b3d91]">
+          Nasabah demo
+        </p>
+        <p className="mt-1 text-[11px] leading-5 text-[#5c6570] lg:hidden">
+          Pilih kartu nasabah di bawah, lalu kembali ke Chat Sabina.
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 lg:gap-1.5">
+          {customers.map((c, index) => (
+            <CustomerCard
+              key={c.cif}
+              customer={c}
+              index={index + 1}
+              active={cif === c.cif}
+              onSelect={(next) => {
+                setCif(next);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          ))}
+        </div>
+        {selected ? (
+          <p className="mt-4 text-[11px] leading-5 text-[#5c6570]">
+            Segmen {selected.segment}. Transaksi dihitung otomatis dari hari ini
+            mundur 10 tahun.
+          </p>
+        ) : null}
+      </aside>
+
+      <aside className="hidden rounded-2xl border border-[#e4e8ee] bg-white p-4 lg:col-start-3 lg:block">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0b3d91]">
           Konteks Sabina
         </p>
@@ -360,5 +386,45 @@ export function ChatApp() {
         ) : null}
       </aside>
     </main>
+  );
+}
+
+function CustomerCard({
+  customer,
+  index,
+  active,
+  onSelect,
+}: {
+  customer: CustomerOpt;
+  index: number;
+  active: boolean;
+  onSelect: (cif: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(customer.cif)}
+      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+        active
+          ? "border border-[#0b3d91] bg-[#eef3fb] shadow-[0_4px_12px_rgba(11,61,145,0.08)]"
+          : "border border-[#e4e8ee] bg-white"
+      }`}
+    >
+      <span
+        className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[11px] font-bold ${
+          active ? "bg-[#0b3d91] text-white" : "bg-[#f1f5f9] text-[#5c6570]"
+        }`}
+      >
+        {String(index).padStart(2, "0")}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold text-[#1a1d23]">
+          {customer.name}
+        </span>
+        <span className="block truncate text-[11px] text-[#5c6570]">
+          CIF {customer.cif} · {customer.city}
+        </span>
+      </span>
+    </button>
   );
 }

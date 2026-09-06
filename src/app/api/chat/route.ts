@@ -6,6 +6,12 @@ import { formatRetrieved, retrieveRag } from "@/lib/rag";
 import { buildServiceContext } from "@/lib/services/capabilities";
 import { hasDeepseekKey, streamDeepseek, type LlmMessage } from "@/lib/deepseek";
 import { fallbackAnswer, systemPrompt } from "@/lib/prompt";
+import {
+  isSaldoInquiry,
+  mockVerifiedInstruction,
+  resolveMockVerification,
+  verifiedSavingsReply,
+} from "@/lib/verification";
 import { sopCount } from "@/lib/sop/catalog";
 import {
   createTicket,
@@ -85,9 +91,14 @@ async function handleChat(body: Incoming) {
     return Response.json({ error: "Pesan kosong" }, { status: 400 });
   }
 
-  const decision = classifyGuard(userText, hasImage);
+  const verified = resolveMockVerification(messages);
+  const decision = verified.isFollowUp ? "allow" : classifyGuard(userText, hasImage);
+  const retrievalQuery = verified.isFollowUp
+    ? verified.priorQuery || "saldo tabungan"
+    : userText;
   const profile =
     (body.cif ? getCustomer(body.cif) : undefined) ??
+    (retrievalQuery ? findCustomer(retrievalQuery) : undefined) ??
     (userText ? findCustomer(userText) : undefined);
 
   const lookupId = ticketLookupId(userText);
@@ -97,7 +108,7 @@ async function handleChat(body: Incoming) {
   try {
     lookedUp = lookupId ? findTicket(lookupId) : undefined;
     opened =
-      decision === "refuse" || lookedUp
+      decision === "refuse" || lookedUp || verified.isFollowUp
         ? null
         : createTicket({ profile, cif: body.cif, message: userText, hasImage });
     openTickets = profile ? listTickets(profile.cif.cif).slice(0, 5) : [];
@@ -110,10 +121,10 @@ async function handleChat(body: Incoming) {
   const rag =
     decision === "refuse"
       ? { sops: [], retrieved: [], stats: { sop: sopCount(), data: 0, totalIndexed: sopCount() } }
-      : retrieveRag(userText || "pengaduan layanan nasabah", { cif: profile?.cif.cif });
+      : retrieveRag(retrievalQuery || "pengaduan layanan nasabah", { cif: profile?.cif.cif });
 
   const customerCtx = profile
-    ? buildCustomerContext(profile, userText || "saldo mutasi")
+    ? buildCustomerContext(profile, retrievalQuery || "saldo mutasi")
     : null;
 
   const meta: ChatMeta = {
@@ -161,6 +172,14 @@ async function handleChat(body: Incoming) {
     });
   }
 
+  if (
+    verified.isFollowUp &&
+    profile &&
+    isSaldoInquiry(verified.priorQuery || retrievalQuery)
+  ) {
+    return friendlyStream(verifiedSavingsReply(profile), meta);
+  }
+
   const history = messages.slice(-8).map((m) => {
     if (m.role === "user" && m.imageDataUrl) {
       return {
@@ -184,14 +203,17 @@ async function handleChat(body: Incoming) {
       ? `Tiket terbuka nasabah:\n${openTickets.map((t) => `${t.id} · ${t.title} · ${t.status}`).join("\n")}`
       : "Tidak ada tiket baru pada pesan ini.";
 
-  const serviceCtx = buildServiceContext(userText, profile);
+  const serviceCtx = buildServiceContext(retrievalQuery, profile);
 
   const grounded = [
     `Nasabah sesi: ${profile ? `${profile.cif.name} (CIF ${profile.cif.cif})` : "belum teridentifikasi."}`,
     "Anda memiliki akses penuh ke snapshot core, papan layanan, lokasi, dan SOP RAG di bawah ini.",
+    verified.isFollowUp
+      ? mockVerifiedInstruction(verified.priorQuery || retrievalQuery)
+      : "",
     customerCtx ? customerCtx.text : "Tidak ada CIF terpilih.",
     serviceCtx,
-    wantsMutasi(userText)
+    wantsMutasi(retrievalQuery)
       ? "Nasabah menanyakan mutasi/transaksi. Gunakan data RAG dan cuplikan mutasi."
       : "",
     ticketBlock,
@@ -211,7 +233,7 @@ async function handleChat(body: Incoming) {
     const text = ticket
       ? `Baik${profile ? ` ${profile.cif.name}` : ""}, pengaduan Anda sudah saya catat.\n\nNomor tiket: ${ticket.id}\n${ticket.title}\nUnit: ${ticket.unit}\nPrioritas: ${ticket.priority}\nSLA: ${ticket.sla}\nStatus: ${ticket.status}\n\nTindakan: ${ticket.actions.join("; ")}.\n\nSimpan nomor tiket ini untuk follow-up. Saya tidak pernah meminta PIN, OTP, atau CVV.`
       : fallbackAnswer({
-          userText,
+          userText: retrievalQuery,
           customerName: profile?.cif.name,
           context: customerCtx?.text ?? "Nasabah belum memilih CIF demo.",
           sopText: rag.sops.map((s) => `[${s.id}] ${s.title}`).join("\n"),
