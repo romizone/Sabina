@@ -93,7 +93,8 @@ export function detectServiceIntents(message: string): CsIntent[] {
   if (
     /(lokasi|cari|dimana|di mana|terdekat).*(cabang|kantor|bank|kcp|kc\b)/.test(q) ||
     /(cabang|kantor bank|unit kerja).*(terdekat|dimana|di mana|lokasi)/.test(q) ||
-    /cari bank|cari cabang/.test(q)
+    /cari bank|cari cabang/.test(q) ||
+    /janji\s*temu|appointment|jadwalkan|reservasi|kunjungan prioritas/.test(q)
   ) {
     found.push("branch_location");
   }
@@ -199,6 +200,27 @@ function listOutlets(city: string, kind?: OutletKind): string {
   const extra = rows.length ? rows : searchOutlets(city, kind).slice(0, 6);
   if (!extra.length) return `Tidak ada titik layanan untuk ${city}.`;
   return extra.map((o) => `- ${formatOutlet(o)}`).join("\n");
+}
+
+export function formatLocationReply(message: string, profile?: CustomerProfile): string | null {
+  const intents = detectServiceIntents(message);
+  const wantsBranch = intents.includes("branch_location");
+  const wantsAtm = intents.includes("atm_location");
+  if (!wantsBranch && !wantsAtm) return null;
+  const city = cityFrom(message, profile?.cif.city);
+  const who = profile?.cif.name.split(" ")[0] ?? "Nasabah";
+  const parts: string[] = [`Baik ${who}, berikut titik layanan Bang Digital di ${city}.`];
+  if (wantsBranch) {
+    parts.push("", `Kantor cabang (${city}):`, listOutlets(city, "kc"), listOutlets(city, "kcp"));
+  }
+  if (wantsAtm) {
+    parts.push("", `ATM / CRM (${city}):`, listOutlets(city, "atm"), listOutlets(city, "crm"));
+  }
+  parts.push(
+    "",
+    "Jam KC/KCP: Senin–Jumat 08.00–15.00 WIB. Nasabah prioritas bisa saya jadwalkan ke lounge tanpa antri teller reguler — cukup bilang ok jadwalkan atau sebut hari/jam.",
+  );
+  return parts.join("\n");
 }
 
 export function buildServiceContext(message: string, profile?: CustomerProfile): string {

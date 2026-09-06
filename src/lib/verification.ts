@@ -1,5 +1,5 @@
 import { currentBalance, transactionsFor } from "./data/transactions";
-import { isHardOffTopicMessage } from "./guardrail";
+import { isBankingText, isHardOffTopicMessage } from "./guardrail";
 import { formatIdr } from "./money";
 import type { ChatMessage, CustomerProfile } from "./types";
 
@@ -13,9 +13,6 @@ const DATE_ISO = /\b\d{4}[/\-.]\d{1,2}[/\-.]\d{1,2}\b/;
 
 const VERIF_ASK =
   /tanggal lahir|tgl lahir|tgl\.?\s*lahir|ibu kandung|nama ibu|nama gadis|verifikasi|otentikasi|autentikasi|3 data|tiga data|mother maiden|tempat.?tanggal lahir|\bttl\b|data otentikasi/i;
-
-const PRIOR_BANKING =
-  /\b(saldo|mutasi|rekening|tabungan|giro|deposito|transaksi|transfer|kartu|kredit|pinjam|pinjaman|tagihan|limit|cif|atm|qris|blokir|unblokir|statement|koran|wealth|invest|reksa|angsuran|plafon|bunga|nasabah|pembayaran|merchant|rrn)\b/i;
 
 const TIME_WINDOW_FOLLOWUP =
   /\b(barusan|baru saja|baru aja|semalam|tadi(?:\s+(?:pagi|siang|sore|malam))?|kemarin|hari ini|bulan ini|minggu (?:ini|lalu)|(?:\d+|satu|se|dua|tiga)\s*(?:jam|menit|hari|minggu|bulan)(?:\s+terakhir)?)\b/i;
@@ -68,7 +65,7 @@ export function looksLikeVerificationReply(message: string): boolean {
 function lastBankingUserQuery(prior: ChatMessage[]): string | undefined {
   for (let i = prior.length - 1; i >= 0; i -= 1) {
     const m = prior[i];
-    if (m?.role === "user" && PRIOR_BANKING.test(m.content)) {
+    if (m?.role === "user" && isBankingText(m.content)) {
       return m.content.trim();
     }
   }

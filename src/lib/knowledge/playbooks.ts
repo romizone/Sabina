@@ -227,9 +227,17 @@ Dispute tidak dikenali: 60 hari dari statement, chargeback 45–90 hari. PIN-bas
       "syarat pinjam",
       "kredit rumah",
       "kredit motor",
+      "ao",
+      "account officer",
+      "rm",
+      "underwriter",
+      "appraisal",
+      "slik",
+      "akad",
+      "ltv",
     ],
     briefing: `KTA tanpa agunan, tenor 12–36 bln, rate board 14,90% p.a., plafon umumnya < Rp 300 jt, putusan 2 hd, cair H+1.
-KPR hingga 20 th, 8,25–8,50%, LTV sesuai BI, appraisal + asuransi jiwa & kebakaran, 15–21 hd. Takeover: outstanding bank asal + roya.
+KPR hingga 20 th, 8,25–8,50%, LTV sesuai BI, appraisal + asuransi jiwa & kebakaran, 15–21 hd. Takeover: outstanding bank asal + roya. Janji temu AO KPR di cabang tanpa KYC ulang pada sesi demo.
 KKB 12–60 bln, 7,90%, BPKB di bank sampai lunas, asuransi comprehensive th-1.
 KUR 6% p.a., UMKM, NIB/SKU + omzet, 12–60 bln. Plafon besar (mis. 1 miliar) biasanya KPR/KUR+agunan, bukan KTA.
 Paylater limit dinamis, 1,50%/bulan, 1–12 bln. DBR angsuran semua fasilitas ±35–40% penghasilan. SLIK kol 1. CS tidak janjikan approve.`,
@@ -386,10 +394,27 @@ Bukti potong bunga: Januari untuk tahun pajak sebelumnya. Restitusi bukan wewena
   {
     id: "PB-CONTACT",
     title: "Kontak dan jam layanan",
-    keywords: ["kontak", "contact", "hubungi", "call center", "jam", "operasional", "cabang", "cs siapa"],
+    keywords: [
+      "kontak",
+      "contact",
+      "hubungi",
+      "call center",
+      "jam",
+      "operasional",
+      "cabang",
+      "cs siapa",
+      "ao",
+      "fo",
+      "pinca",
+      "pincapem",
+      "kaunit",
+      "mantri",
+      "janji temu",
+      "appointment",
+    ],
     briefing: `Live CS Sabina: sabina.rominur.com (chat ini) 24/7 untuk inquiry + tiket.
 Call center fiksi 1500-BANG. Cabang/KCP Senin–Jumat 08.00–15.00 WIB. ATM 24 jam. CRM 05.00–22.00. Digital 24/7 kecuali maintenance.
-Appointment prioritas di aplikasi. Libur nasional: cabang tutup, ATM/QRIS/BI-FAST tetap jalan.`,
+Janji temu cabang bisa ke AO, RM, FO, Pinca, Pincapem, Kaunit, Mantri, teller, atau priority lounge. Appointment prioritas di aplikasi. Libur nasional: cabang tutup, ATM/QRIS/BI-FAST tetap jalan.`,
   },
   {
     id: "PB-LPS",

@@ -1,10 +1,11 @@
 import { PUBLIC_MODEL_NAME } from "@/lib/config";
+import { resolveAppointmentReply } from "@/lib/data/appointments";
 import { findCustomer, getCustomer } from "@/lib/data/customers";
 import { formatFailedTxReply, isFailedTxInquiry } from "@/lib/data/failed-tx";
 import { buildCustomerContext, wantsMutasi } from "@/lib/data/snapshot";
-import { classifyGuard, refusalText } from "@/lib/guardrail";
+import { classifyGuard, priorChat, refusalText, resolveBankingFollowUp } from "@/lib/guardrail";
 import { formatRetrieved, retrieveRag } from "@/lib/rag";
-import { buildServiceContext } from "@/lib/services/capabilities";
+import { buildServiceContext, formatLocationReply } from "@/lib/services/capabilities";
 import { hasDeepseekKey, streamDeepseek, type LlmMessage } from "@/lib/deepseek";
 import { fallbackAnswer, systemPrompt } from "@/lib/prompt";
 import {
@@ -97,9 +98,15 @@ async function handleChat(body: Incoming) {
   const timeFollow = verified.isFollowUp
     ? { isFollowUp: false as const }
     : resolveTimeWindowFollowUp(messages);
-  const inThread = verified.isFollowUp || timeFollow.isFollowUp;
-  const decision = inThread ? "allow" : classifyGuard(userText, hasImage);
-  const priorQuery = verified.priorQuery || timeFollow.priorQuery;
+  const threadFollow =
+    verified.isFollowUp || timeFollow.isFollowUp
+      ? { isFollowUp: false as const }
+      : resolveBankingFollowUp(messages);
+  const inThread = verified.isFollowUp || timeFollow.isFollowUp || threadFollow.isFollowUp;
+  const prior = priorChat(messages);
+  const rawDecision = classifyGuard(userText, hasImage, prior);
+  const decision = rawDecision === "refuse" && inThread ? "allow" : rawDecision;
+  const priorQuery = verified.priorQuery || timeFollow.priorQuery || threadFollow.priorQuery;
   const retrievalQuery = inThread && priorQuery
     ? verified.isFollowUp
       ? priorQuery
@@ -118,7 +125,11 @@ async function handleChat(body: Incoming) {
   try {
     lookedUp = lookupId ? findTicket(lookupId) : undefined;
     opened =
-      decision === "refuse" || lookedUp || verified.isFollowUp || failedInquiry
+      decision === "refuse" ||
+      lookedUp ||
+      verified.isFollowUp ||
+      failedInquiry ||
+      threadFollow.isFollowUp
         ? null
         : createTicket({ profile, cif: body.cif, message: userText, hasImage });
     openTickets = profile ? listTickets(profile.cif.cif).slice(0, 5) : [];
@@ -194,6 +205,17 @@ async function handleChat(body: Incoming) {
     return friendlyStream(formatFailedTxReply(profile, retrievalQuery), meta);
   }
 
+  if (!verified.isFollowUp && !failedInquiry) {
+    const appointmentText = resolveAppointmentReply(messages, profile);
+    if (appointmentText) {
+      return friendlyStream(appointmentText, meta);
+    }
+    const locationText = formatLocationReply(retrievalQuery, profile);
+    if (locationText) {
+      return friendlyStream(locationText, meta);
+    }
+  }
+
   const history = messages.slice(-8).map((m) => {
     if (m.role === "user" && m.imageDataUrl) {
       return {
@@ -226,7 +248,9 @@ async function handleChat(body: Incoming) {
       ? mockVerifiedInstruction(verified.priorQuery || retrievalQuery)
       : timeFollow.isFollowUp
         ? `=== FOLLOW-UP JENDELA WAKTU ===\nNasabah mempersempit waktu setelah pertanyaan perbankan. Tetap topik bank. Jangan tolak. Lanjutkan: "${priorQuery || retrievalQuery}"`
-        : "",
+        : threadFollow.isFollowUp
+          ? `=== FOLLOW-UP PERBANKAN ===\nNasabah melanjutkan thread bank (konfirmasi/jadwal/cabang/AO/FO/Pinca atau istilah terkait). Tetap topik bank. Jangan minta KYC. Jangan tolak. Lanjutkan: "${priorQuery || retrievalQuery}"`
+          : "",
     customerCtx ? customerCtx.text : "Tidak ada CIF terpilih.",
     serviceCtx,
     wantsMutasi(retrievalQuery)

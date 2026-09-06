@@ -848,7 +848,7 @@ const EXTRA_TOPICS: Draft[] = [
   {
     category: "Cabang & Lokasi",
     title: "Informasi lokasi ATM dan kantor cabang",
-    keywords: ["lokasi atm", "kantor cabang", "jam operasional", "cabang terdekat"],
+    keywords: ["lokasi atm", "kantor cabang", "jam operasional", "cabang terdekat", "janji temu", "appointment", "ao"],
     summary: "Berikan cabang dan ATM terdekat berdasarkan kota nasabah. Jam operasional cabang 08.00-15.00 WIB hari kerja.",
     steps: ["Minta kota/kecamatan", "Berikan 2-3 lokasi", "Sebut jam dan layanan (teller, safe deposit, prioritas)"],
     sla: "langsung",
